@@ -1,6 +1,7 @@
 const express = require('express')
 const crypto = require('crypto')
 const ncm = require('NeteaseCloudMusicApi')
+const serverless = require('serverless-http')
 const app = express()
 const port = Number(process.env.PORT || 3000)
 const sessions = new Map()
@@ -24,4 +25,17 @@ app.get('/api/music/playlist', (req, res) => send(res, ncm.user_playlist, { uid:
 app.get('/api/music/playlist/:id', (req, res) => send(res, ncm.playlist_track_all, { id: req.params.id, limit: 50 }, userCookie(req)))
 app.get('/api/music/song/:id', (req, res) => send(res, ncm.song_url, { id: req.params.id, level: 'standard' }, userCookie(req)))
 app.post('/api/music/logout', (req, res) => { const userId = req.header('x-user-id'); if (userId) sessions.delete(userId); res.json({ code: 200 }) })
-app.listen(port, () => console.log(`Music BFF running at http://localhost:${port}`))
+// Tencent SCF invokes this handler through an API Gateway event. Normalize
+// the query field used by Tencent before handing it to serverless-http.
+const serverlessHandler = serverless(app)
+const cloudHandler = async (event, context) => serverlessHandler({
+  ...event,
+  queryStringParameters: event.queryStringParameters || event.queryString || {},
+  requestContext: event.requestContext || {},
+}, context)
+
+module.exports = { app, handler: cloudHandler, main_handler: cloudHandler }
+
+if (require.main === module) {
+  app.listen(port, () => console.log(`Music BFF running at http://localhost:${port}`))
+}

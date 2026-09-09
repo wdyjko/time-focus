@@ -80,7 +80,7 @@ VITE_API_BASE_URL=https://your-music-api.example.com
 
 ### 部署音乐后端
 
-音乐功能依赖 `server/index.cjs` 中的常驻 Express 服务，建议部署到 Render、Railway 或其他支持 Node.js 常驻进程的平台：
+音乐功能依赖 `server/index.cjs` 中的 Express 服务。可以部署到支持常驻 Node.js 进程的平台：
 
 ```text
 Build Command: npm install
@@ -96,6 +96,24 @@ CORS_ALLOW_ORIGIN=https://time-focus.vercel.app
 然后将后端公开地址填写到 Vercel 的 `VITE_API_BASE_URL` 中。
 
 > 当前音乐登录会话存储在服务进程内存中。服务重启后登录状态会失效；如果用于多人或长期运行，建议改用 Redis 等持久化存储。
+
+### 使用腾讯云云函数（SCF）
+
+如果没有国际银行卡，可以使用腾讯云的国内账号和支付方式。当前后端已同时支持本地 Express 和腾讯云函数调用：
+
+1. 在腾讯云创建 Node.js 20 云函数，地域选择距离用户较近的区域。
+2. 将仓库中的 `server` 目录、`package.json` 和 `package-lock.json` 上传为函数代码，或使用控制台的代码包部署。
+3. 函数入口填写 `server/index.main_handler`。
+4. 创建 API 网关触发器，使用默认的 API Gateway 集成，转发所有路径和方法。
+5. 配置函数环境变量：
+
+```env
+CORS_ALLOW_ORIGIN=https://你的-vercel-域名
+```
+
+6. 发布 API 网关后，将网关的公网地址填入 Vercel 的 `VITE_API_BASE_URL`，再重新部署前端。
+
+腾讯云控制台的函数运行环境、免费额度和 API 网关计费规则可能会调整，请以创建页面显示为准。云函数实例可能重启，网易云扫码登录会话因此可能失效；稳定保存会话需要额外接入 Redis 或云数据库。
 
 ## 数据说明
 
