@@ -23,7 +23,23 @@ app.get('/api/music/login/status', async (req, res) => { const session = qrSessi
 app.get('/api/music/search', (req, res) => send(res, ncm.search, { keywords: String(req.query.keywords || ''), limit: 20, type: 1 }, userCookie(req)))
 app.get('/api/music/playlist', (req, res) => send(res, ncm.user_playlist, { uid: req.header('x-user-id'), limit: 30 }, userCookie(req)))
 app.get('/api/music/playlist/:id', (req, res) => send(res, ncm.playlist_track_all, { id: req.params.id, limit: 50 }, userCookie(req)))
-app.get('/api/music/song/:id', (req, res) => send(res, ncm.song_url, { id: req.params.id, level: 'standard' }, userCookie(req)))
+// Netease frequently returns an HTTP CDN URL. The frontend is normally served
+// over HTTPS (Vercel), where using that URL is blocked as mixed content and
+// some browsers may expose a decoder error instead of a useful message.
+app.get('/api/music/song/:id', async (req, res) => {
+  try {
+    const result = await ncm.song_url({ id: req.params.id, level: 'standard', cookie: userCookie(req) })
+    const body = result.body || result
+    if (Array.isArray(body.data)) {
+      body.data = body.data.map(item => item?.url?.startsWith('http://')
+        ? { ...item, url: item.url.replace(/^http:\/\//i, 'https://') }
+        : item)
+    }
+    res.status(result.status || 200).json(body)
+  } catch (error) {
+    res.status(error.status || 502).json({ code: error.status || 502, msg: '网易云服务暂时不可用' })
+  }
+})
 app.post('/api/music/logout', (req, res) => { const userId = req.header('x-user-id'); if (userId) sessions.delete(userId); res.json({ code: 200 }) })
 // Tencent SCF invokes this handler through an API Gateway event. Normalize
 // the query field used by Tencent before handing it to serverless-http.

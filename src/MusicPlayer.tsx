@@ -78,7 +78,10 @@ export default function MusicPlayer() {
   const playSong = async (song: Song) => {
     try {
       const result = await api(`/api/music/song/${song.id}`, userId)
-      const url = result.data?.[0]?.url
+      // Keep playback HTTPS-compatible when an older API instance still
+      // returns an HTTP Netease CDN URL.
+      const rawUrl = result.data?.[0]?.url
+      const url = typeof rawUrl === 'string' ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl
       if (!url) throw new Error('unavailable')
       if (!audio.current) audio.current = new Audio()
       audio.current.src = url; audio.current.volume = volume; audio.current.ontimeupdate = () => setCurrentTime(audio.current?.currentTime || 0); audio.current.onloadedmetadata = () => setDuration(audio.current?.duration || 0); audio.current.onended = () => {
