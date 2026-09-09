@@ -1,0 +1,29 @@
+@import "tailwindcss";
+@theme { --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+body { margin: 0; min-width: 320px; }
+
+/* Keep playlist scrolling available while removing the visual scrollbar. */
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+@keyframes album-art-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.album-art {
+  animation: album-art-spin 8s linear infinite;
+  animation-play-state: paused;
+}
+
+.album-art.is-playing {
+  animation-play-state: running;
+}
