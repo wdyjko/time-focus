@@ -103,7 +103,7 @@ CORS_ALLOW_ORIGIN=https://time-focus.vercel.app
 
 1. 在腾讯云创建 Node.js 20 云函数，地域选择距离用户较近的区域。
 2. 将仓库中的 `server` 目录、`package.json` 和 `package-lock.json` 上传为函数代码，或使用控制台的代码包部署。
-3. 函数入口填写 `server/index.main_handler`。包装入口会转发到现有 Express 应用。
+3. 选择“Web 函数”，函数入口填写 `index.main_handler`。上传包需要将 `index.js` 和 `index.cjs` 放在 ZIP 根目录。
 4. 创建 API 网关触发器，使用默认的 API Gateway 集成，转发所有路径和方法。
 5. 配置函数环境变量：
 
