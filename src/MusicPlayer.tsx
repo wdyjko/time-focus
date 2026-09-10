@@ -4,12 +4,14 @@ type Song = { id: number; name: string; artists?: { name: string }[]; ar?: { nam
 type PlayMode = 'repeat-one' | 'sequential' | 'random'
 type MusicView = 'home' | 'search'
 const USER_KEY = 'tomato-clock-netease-user-id'
+const SESSION_KEY = 'tomato-clock-netease-session'
 // In production this is normally the URL of the separately deployed music API.
 // An empty value keeps same-origin requests usable when the API is colocated.
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
 const api = async (path: string, userId?: string, method: 'GET' | 'POST' = 'GET') => {
-  const headers = userId ? { 'X-User-Id': userId } : undefined
+  const sessionToken = localStorage.getItem(SESSION_KEY)
+  const headers = userId || sessionToken ? { ...(userId ? { 'X-User-Id': userId } : {}), ...(sessionToken ? { 'X-Music-Session': sessionToken } : {}) } : undefined
   let lastError: unknown
   const urls = API_BASE_URL ? [`${API_BASE_URL}${path}`, path] : [path]
   for (const url of urls) {
@@ -64,7 +66,7 @@ export default function MusicPlayer() {
       window.clearInterval(poller.current)
       poller.current = window.setInterval(async () => {
         const status = await api(`/api/music/login/status?sessionId=${encodeURIComponent(result.sessionId)}`)
-        if (status.code === 803) { window.clearInterval(poller.current); localStorage.setItem(USER_KEY, status.userId); setUserId(status.userId); setLoginMessage('登录成功'); setTimeout(() => setOpen(false), 700) }
+        if (status.code === 803) { window.clearInterval(poller.current); localStorage.setItem(USER_KEY, status.userId); if (status.sessionToken) localStorage.setItem(SESSION_KEY, status.sessionToken); setUserId(status.userId); setLoginMessage('登录成功'); setTimeout(() => setOpen(false), 700) }
         else if (status.code === 802) setLoginMessage('已扫码，请确认登录')
         else if (status.code === 800) { window.clearInterval(poller.current); setLoginMessage('二维码已失效，请重新获取') }
       }, 2000)
@@ -106,6 +108,7 @@ export default function MusicPlayer() {
     audio.current?.pause()
     if (audio.current) audio.current.src = ''
     localStorage.removeItem(USER_KEY)
+    localStorage.removeItem(SESSION_KEY)
     setUserId(''); setLoginQr(null); setLoginMessage('扫码登录网易云音乐'); setSongs([]); setHomeSongs([]); setCurrent(null); setPlaying(false); setView('home'); setError('')
   }
 
