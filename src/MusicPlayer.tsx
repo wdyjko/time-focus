@@ -103,6 +103,10 @@ export default function MusicPlayer() {
     } catch { setError('歌曲暂时无法播放') }
   }
   const togglePlay = async () => { if (!audio.current || !current) return; if (playing) { audio.current.pause(); setPlaying(false) } else { await audio.current.play(); setPlaying(true) } }
+  const seek = (value: number) => {
+    setCurrentTime(value)
+    if (audio.current) audio.current.currentTime = value
+  }
   const logout = async () => {
     try { if (userId) await api('/api/music/logout', userId, 'POST') } catch { /* Local logout still completes if the BFF is unavailable. */ }
     audio.current?.pause()
@@ -113,14 +117,16 @@ export default function MusicPlayer() {
   }
 
   return <>
-    <div className="fixed bottom-3 left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 items-center gap-3 rounded-2xl border border-white/10 bg-[#17151d]/95 px-3 py-2 text-white shadow-xl backdrop-blur-lg">
-      <button onClick={() => setOpen(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#2a2635] text-lg" aria-label="打开网易云音乐">
-        {current?.al?.picUrl ? <img src={current.al.picUrl} alt={`${current.name} 专辑封面`} className={`album-art h-9 w-9 rounded-full object-cover ${playing ? 'is-playing' : ''}`} /> : '♫'}
-      </button>
-      <button onClick={() => setOpen(true)} className="min-w-0 flex-1 text-left"><p className="truncate text-sm font-semibold">{current?.name || '网易云音乐'}</p><p className="truncate text-xs text-white/55">{current ? (current.artists || current.ar || []).map(item => item.name).join(' / ') : userId ? '搜索音乐并开始播放' : '登录后播放你的歌单'}</p></button>
-      <button onClick={togglePlay} disabled={!current} className="grid h-9 w-9 place-items-center rounded-full bg-[#e85d5d] disabled:opacity-40" aria-label={playing ? '暂停' : '播放'}>{playing ? 'Ⅱ' : '▶'}</button>
-      <input aria-label="音量" type="range" min="0" max="1" step="0.05" value={volume} onChange={event => { const next = Number(event.target.value); setVolume(next); if (audio.current) audio.current.volume = next }} className="hidden w-20 accent-[#e85d5d] sm:block" />
-      <button onClick={() => setOpen(true)} className="rounded-lg px-2 py-1 text-xs text-white/70 hover:bg-white/10">展开</button>
+    <div onClick={() => setOpen(true)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen(true) } }} role="button" tabIndex={0} aria-label="展开网易云音乐播放器" className="fixed bottom-3 left-1/2 z-40 w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 cursor-pointer rounded-2xl border border-white/10 bg-[#17151d]/95 px-3 py-2 text-white shadow-xl backdrop-blur-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e85d5d]">
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#2a2635] text-lg">
+          {current?.al?.picUrl ? <img src={current.al.picUrl} alt={`${current.name} 专辑封面`} className={`album-art h-9 w-9 rounded-full object-cover ${playing ? 'is-playing' : ''}`} /> : '♫'}
+        </div>
+        <div className="min-w-0 flex-1 text-left"><p className="truncate text-sm font-semibold">{current?.name || '网易云音乐'}</p><p className="truncate text-xs text-white/55">{current ? (current.artists || current.ar || []).map(item => item.name).join(' / ') : userId ? '搜索音乐并开始播放' : '登录后播放你的歌单'}</p></div>
+        <button onClick={event => { event.stopPropagation(); void togglePlay() }} disabled={!current} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e85d5d] disabled:opacity-40" aria-label={playing ? '暂停' : '播放'}>{playing ? <PauseIcon /> : '▶'}</button>
+        <input onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} aria-label="音量" type="range" min="0" max="1" step="0.05" value={volume} onChange={event => { const next = Number(event.target.value); setVolume(next); if (audio.current) audio.current.volume = next }} className="hidden w-20 cursor-pointer accent-[#e85d5d] sm:block" />
+      </div>
+      {current && <div onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} className="mt-1.5 flex cursor-default items-center gap-2 px-0.5 text-[10px] text-white/45"><span className="w-9 text-right tabular-nums">{formatSeconds(currentTime)}</span><input aria-label="播放进度" type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={event => seek(Number(event.target.value))} className="h-3 min-w-0 flex-1 cursor-pointer accent-[#e85d5d]" /><span className="w-9 tabular-nums">{formatSeconds(duration)}</span></div>}
     </div>
     {open && <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"><section className="flex aspect-video w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[#211e2a] p-4 text-white shadow-2xl sm:p-5">
       <div className="mb-3 flex shrink-0 items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-lg font-bold">网易云音乐</h2>{userId && <button onClick={logout} className="text-xs text-white/50 hover:text-white">退出登录</button>}</div><button onClick={() => setOpen(false)} className="text-xl leading-none text-white/60">×</button></div>
@@ -128,7 +134,7 @@ export default function MusicPlayer() {
         <div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-3 text-sm"><button onClick={showHome} className={`rounded-md px-3 py-1.5 ${view === 'home' ? 'bg-white/15 font-bold text-white' : 'text-white/55 hover:bg-white/10'}`}>我喜欢的音乐</button>{view === 'search' && <span className="text-white/35">搜索结果</span>}</div>
         <div className="flex gap-2"><input value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') search() }} placeholder="搜索歌曲" className="min-w-0 flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none placeholder:text-white/35" /><button onClick={search} className="rounded-lg bg-[#e85d5d] px-4 text-sm font-bold">搜索</button></div>
         <div className="mt-3 flex items-center justify-between"><p className="text-xs text-white/50">{view === 'home' ? '我的喜欢' : '搜索结果'}</p><select aria-label="播放模式" value={playMode} onChange={event => setPlayMode(event.target.value as PlayMode)} className="rounded-md bg-white/10 px-2 py-1 text-xs text-white outline-none"><option value="sequential" className="text-black">顺序播放</option><option value="repeat-one" className="text-black">单曲循环</option><option value="random" className="text-black">随机播放</option></select></div>
-        {current && <div className="mt-4 flex items-center gap-2 text-[10px] text-white/45"><button onClick={togglePlay} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#e85d5d] text-white" aria-label={playing ? '暂停' : '播放'}>{playing ? 'Ⅱ' : '▶'}</button><span>{formatSeconds(currentTime)}</span><input aria-label="播放进度" type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={event => { const next = Number(event.target.value); setCurrentTime(next); if (audio.current) audio.current.currentTime = next }} className="flex-1 accent-[#e85d5d]" /><span>{formatSeconds(duration)}</span></div>}
+        {current && <div className="mt-4 flex items-center gap-2 text-[10px] text-white/45"><button onClick={togglePlay} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#e85d5d] text-white" aria-label={playing ? '暂停' : '播放'}>{playing ? <PauseIcon /> : '▶'}</button><span>{formatSeconds(currentTime)}</span><input aria-label="播放进度" type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={event => seek(Number(event.target.value))} className="flex-1 accent-[#e85d5d]" /><span>{formatSeconds(duration)}</span></div>}
         {error && <p className="mt-3 text-xs text-[#ffaaa4]">{error}</p>}
         <div className="scrollbar-hidden mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">{songs.map(song => <button key={song.id} onClick={() => playSong(song)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-white/10 ${current?.id === song.id ? 'bg-white/10' : ''}`}><span className="min-w-0 flex-1 truncate text-sm">{song.name}</span><span className="max-w-40 truncate text-xs text-white/45">{(song.artists || song.ar || []).map(item => item.name).join(' / ')}</span></button>)}</div>
       </div>}</div>
@@ -139,4 +145,8 @@ export default function MusicPlayer() {
 function formatSeconds(value: number) {
   if (!Number.isFinite(value)) return '00:00'
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(Math.floor(value % 60)).padStart(2, '0')}`
+}
+
+function PauseIcon() {
+  return <span aria-hidden="true" className="inline-block rotate-90 text-base font-black leading-none">=</span>
 }
