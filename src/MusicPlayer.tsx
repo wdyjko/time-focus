@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 type Song = { id: number; name: string; artists?: { name: string }[]; ar?: { name: string }[]; al?: { picUrl?: string; name?: string } }
+type Playlist = { id: number; name: string; trackCount?: number; coverImgUrl?: string; specialType?: number }
 type PlayMode = 'repeat-one' | 'sequential' | 'random'
 type MusicView = 'home' | 'search'
 const USER_KEY = 'tomato-clock-netease-user-id'
@@ -32,6 +33,9 @@ export default function MusicPlayer() {
   const [query, setQuery] = useState('')
   const [songs, setSongs] = useState<Song[]>([])
   const [homeSongs, setHomeSongs] = useState<Song[]>([])
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<number | null>(null)
+  const [account, setAccount] = useState<{ nickname?: string; avatarUrl?: string } | null>(null)
   const [view, setView] = useState<MusicView>('home')
   const [playMode, setPlayMode] = useState<PlayMode>('sequential')
   const [current, setCurrent] = useState<Song | null>(null)
@@ -50,15 +54,26 @@ export default function MusicPlayer() {
   useEffect(() => { playModeRef.current = playMode }, [playMode])
   useEffect(() => {
     if (!userId) return
-    api('/api/music/playlist', userId).then(async result => {
-      const favorite = result.playlist?.find((item: { specialType?: number }) => item.specialType === 5) || result.playlist?.[0]
+    Promise.all([api('/api/music/playlist', userId), api('/api/music/account', userId)]).then(async ([result, accountResult]) => {
+      const available = (result.playlist || []) as Playlist[]
+      setPlaylists(available)
+      setAccount(accountResult.profile || accountResult.data?.profile || null)
+      const favorite = available.find(item => item.specialType === 5) || available[0]
       if (!favorite) return
+      setSelectedPlaylistId(favorite.id)
       const tracks = await api(`/api/music/playlist/${favorite.id}`, userId)
       const favoriteSongs = (tracks.songs || []).slice(0, 30)
       setHomeSongs(favoriteSongs)
       setSongs(favoriteSongs)
     }).catch(() => undefined)
   }, [userId])
+  const selectPlaylist = async (playlistId: number) => {
+    try {
+      const tracks = await api(`/api/music/playlist/${playlistId}`, userId)
+      const nextSongs = (tracks.songs || []).slice(0, 30)
+      setSelectedPlaylistId(playlistId); setHomeSongs(nextSongs); setSongs(nextSongs); setView('home'); setError('')
+    } catch { setError('歌单加载失败，请稍后重试') }
+  }
   const startLogin = async () => {
     try {
       const result = await api('/api/music/login/qr', undefined, 'POST')
@@ -113,7 +128,7 @@ export default function MusicPlayer() {
     if (audio.current) audio.current.src = ''
     localStorage.removeItem(USER_KEY)
     localStorage.removeItem(SESSION_KEY)
-    setUserId(''); setLoginQr(null); setLoginMessage('扫码登录网易云音乐'); setSongs([]); setHomeSongs([]); setCurrent(null); setPlaying(false); setView('home'); setError('')
+    setUserId(''); setLoginQr(null); setLoginMessage('扫码登录网易云音乐'); setSongs([]); setHomeSongs([]); setPlaylists([]); setSelectedPlaylistId(null); setAccount(null); setCurrent(null); setPlaying(false); setView('home'); setError('')
   }
 
   return <>
@@ -129,9 +144,9 @@ export default function MusicPlayer() {
       {current && <div onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} className="mt-1.5 flex cursor-default items-center gap-2 px-0.5 text-[10px] text-white/45"><span className="w-9 text-right tabular-nums">{formatSeconds(currentTime)}</span><input aria-label="播放进度" type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={event => seek(Number(event.target.value))} className="h-3 min-w-0 flex-1 cursor-pointer accent-[#e85d5d]" /><span className="w-9 tabular-nums">{formatSeconds(duration)}</span></div>}
     </div>
     {open && <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"><section className="flex aspect-video w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[#211e2a] p-4 text-white shadow-2xl sm:p-5">
-      <div className="mb-3 flex shrink-0 items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-lg font-bold">网易云音乐</h2>{userId && <button onClick={logout} className="text-xs text-white/50 hover:text-white">退出登录</button>}</div><button onClick={() => setOpen(false)} className="text-xl leading-none text-white/60">×</button></div>
+      <div className="mb-3 flex shrink-0 items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-lg font-bold">网易云音乐</h2>{userId && <button onClick={logout} className="text-xs text-white/50 hover:text-white">退出登录</button>}</div><button onClick={() => setOpen(false)} aria-label="关闭播放器" title="关闭播放器" className="grid h-10 w-10 place-items-center rounded-lg text-3xl leading-none text-white/60 transition hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e85d5d]">×</button></div>
       <div className="min-h-0 flex-1 overflow-hidden">{!userId ? <div className="grid h-full place-items-center text-center"><div><p className="mb-4 text-sm text-white/65">{loginMessage}</p>{loginQr ? <img src={loginQr} alt="网易云登录二维码" className="mx-auto h-[min(30vh,208px)] w-[min(30vh,208px)] rounded-lg bg-white p-2" /> : <button onClick={startLogin} className="rounded-lg bg-[#e85d5d] px-5 py-2 text-sm font-bold">获取登录二维码</button>}</div></div> : <div className="flex h-full min-h-0 flex-col">
-        <div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-3 text-sm"><button onClick={showHome} className={`rounded-md px-3 py-1.5 ${view === 'home' ? 'bg-white/15 font-bold text-white' : 'text-white/55 hover:bg-white/10'}`}>我喜欢的音乐</button>{view === 'search' && <span className="text-white/35">搜索结果</span>}</div>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3"><div className="flex min-w-0 items-center gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-white/10 text-sm font-bold">{account?.avatarUrl ? <img src={account.avatarUrl} alt="账号头像" className="h-full w-full object-cover" /> : (account?.nickname || userId).slice(0, 1)}</div><div className="min-w-0"><p className="truncate text-sm font-bold">{account?.nickname || `网易云账号 ${userId}`}</p><p className="truncate text-[10px] text-white/45">已登录 · {playlists.length} 个歌单</p></div></div><select aria-label="选择歌单" value={selectedPlaylistId ?? ''} onChange={event => { const id = Number(event.target.value); if (id) void selectPlaylist(id) }} className="max-w-[48%] rounded-md bg-white/10 px-2 py-1.5 text-xs text-white outline-none"><option value="" className="text-black">选择歌单</option>{playlists.map(playlist => <option key={playlist.id} value={playlist.id} className="text-black">{playlist.name}（{playlist.trackCount || 0}首）</option>)}</select></div>
         <div className="flex gap-2"><input value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') search() }} placeholder="搜索歌曲" className="min-w-0 flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none placeholder:text-white/35" /><button onClick={search} className="rounded-lg bg-[#e85d5d] px-4 text-sm font-bold">搜索</button></div>
         <div className="mt-3 flex items-center justify-between"><p className="text-xs text-white/50">{view === 'home' ? '我的喜欢' : '搜索结果'}</p><select aria-label="播放模式" value={playMode} onChange={event => setPlayMode(event.target.value as PlayMode)} className="rounded-md bg-white/10 px-2 py-1 text-xs text-white outline-none"><option value="sequential" className="text-black">顺序播放</option><option value="repeat-one" className="text-black">单曲循环</option><option value="random" className="text-black">随机播放</option></select></div>
         {current && <div className="mt-4 flex items-center gap-2 text-[10px] text-white/45"><button onClick={togglePlay} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#e85d5d] text-white" aria-label={playing ? '暂停' : '播放'}>{playing ? <PauseIcon /> : '▶'}</button><span>{formatSeconds(currentTime)}</span><input aria-label="播放进度" type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={event => seek(Number(event.target.value))} className="flex-1 accent-[#e85d5d]" /><span>{formatSeconds(duration)}</span></div>}
@@ -148,5 +163,5 @@ function formatSeconds(value: number) {
 }
 
 function PauseIcon() {
-  return <span aria-hidden="true" className="inline-block rotate-90 text-base font-black leading-none">=</span>
+  return <span aria-hidden="true" className="flex items-center justify-center gap-1"><span className="h-5 w-1.5 rounded-sm bg-current" /><span className="h-5 w-1.5 rounded-sm bg-current" /></span>
 }
