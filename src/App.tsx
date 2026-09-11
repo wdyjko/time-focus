@@ -167,11 +167,11 @@ export default function App() {
 
   const startPause = async () => {
     if (running) { setRunning(false); setStatus('已暂停'); return }
-    if (!currentTaskId) { setStatus('请先选择一个任务'); return }
     if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission().catch(() => undefined)
     if (remaining === 0) setRemaining(duration)
     finishHandledRef.current = false
-    setRunning(true); setStatus('计时进行中')
+    setRunning(true)
+    setStatus(currentTaskId ? '计时进行中' : '计时进行中（未关联任务）')
   }
   const reset = () => { setRunning(false); setRemaining(duration); setStandardPomodoros(0); setStatus('准备开始专注') }
   const switchMode = (next: Mode) => {
@@ -264,7 +264,7 @@ export default function App() {
         </div>
       </div>
       <p className="mb-6 mt-5 min-h-6 text-sm text-[#777b88]">{status}</p>
-      <div className="flex flex-wrap items-center justify-center gap-2.5"><button onClick={startPause} className="min-h-12 min-w-28 rounded-md bg-[#e85d5d] px-5 font-bold text-white transition hover:bg-[#c84646]">{running ? '暂停' : '开始'}</button><button onClick={reset} className="min-h-12 min-w-28 rounded-md border border-[#eee9e6] bg-white px-5 font-bold transition hover:-translate-y-px hover:shadow-md">重置</button><span className="relative inline-flex"><button onClick={toggleStandardMode} aria-pressed={standardMode} className={`min-h-12 min-w-28 rounded-md px-4 font-bold transition ${standardMode ? 'bg-[#2b2c34] text-white shadow-md' : 'border border-[#eee9e6] bg-white hover:-translate-y-px hover:shadow-md'}`}>标准模式</button><button onClick={() => setShowStandardInfo(true)} aria-label="查看标准模式说明" className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full border border-white bg-[#777b88] text-xs font-bold leading-none text-white shadow-sm transition hover:bg-[#2b2c34]">i</button></span></div>
+      <div className="flex flex-wrap items-center justify-center gap-2.5"><button type="button" onClick={startPause} className="min-h-12 min-w-28 rounded-md bg-[#e85d5d] px-5 font-bold text-white transition hover:bg-[#c84646]">{running ? '暂停' : '开始'}</button><button type="button" onClick={reset} className="min-h-12 min-w-28 rounded-md border border-[#eee9e6] bg-white px-5 font-bold transition hover:-translate-y-px hover:shadow-md">重置</button><span className="relative inline-flex"><button type="button" onClick={toggleStandardMode} aria-pressed={standardMode} className={`min-h-12 min-w-28 rounded-md px-4 font-bold transition ${standardMode ? 'bg-[#2b2c34] text-white shadow-md' : 'border border-[#eee9e6] bg-white hover:-translate-y-px hover:shadow-md'}`}>标准模式</button><button type="button" onClick={() => setShowStandardInfo(true)} aria-label="查看标准模式说明" className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full border border-white bg-[#777b88] text-xs font-bold leading-none text-white shadow-sm transition hover:bg-[#2b2c34]">i</button></span></div>
       </div>
       <div>
       <div className="mt-7 grid grid-cols-2 gap-3 border-t border-[#eee9e6] pt-5">
@@ -278,7 +278,7 @@ export default function App() {
         </div>
       </div>
       <div className="mt-6 border-t border-[#eee9e6] pt-5 text-left">
-        <div className="mb-3 flex items-center justify-between"><p className="text-sm font-bold text-[#2b2c34]">任务列表</p><p className="text-xs text-[#777b88]">选择任务后开始专注</p></div>
+        <div className="mb-3 flex items-center justify-between"><p className="text-sm font-bold text-[#2b2c34]">任务列表</p><p className="text-xs text-[#777b88]">可选任务关联</p></div>
         <div className="flex gap-2">
           <input value={taskTitle} onChange={event => setTaskTitle(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') addTask() }} placeholder="添加一个任务" className="min-w-0 flex-1 rounded-md border border-[#eee9e6] px-3 py-2 text-sm outline-none transition focus:border-[#e85d5d]" />
           <button onClick={addTask} className="rounded-md bg-[#2b2c34] px-4 text-sm font-bold text-white transition hover:bg-[#454652]">添加</button>
