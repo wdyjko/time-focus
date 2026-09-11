@@ -64,7 +64,7 @@ VITE_API_BASE_URL=https://your-music-api.example.com
 | 变量 | 用途 | 默认值 |
 | --- | --- | --- |
 | `PORT` | 后端监听端口 | `3000` |
-| `CORS_ALLOW_ORIGIN` | 允许访问音乐 API 的前端来源 | `http://localhost:5173` |
+| `CORS_ALLOW_ORIGIN` | 允许访问音乐 API 的前端来源，多个来源用英文逗号分隔 | `http://localhost:5173` |
 
 ## 部署
 
@@ -87,13 +87,19 @@ Build Command: npm install
 Start Command: npm start
 ```
 
-将后端环境变量 `CORS_ALLOW_ORIGIN` 设置为实际的 Vercel 站点地址，例如：
+将后端环境变量 `CORS_ALLOW_ORIGIN` 设置为实际的前端站点地址。当前国内 CloudBase 前端地址为：
 
 ```env
-CORS_ALLOW_ORIGIN=https://time-focus.vercel.app
+CORS_ALLOW_ORIGIN=https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com
 ```
 
-然后将后端公开地址填写到 Vercel 的 `VITE_API_BASE_URL` 中。
+如果同时保留 Vercel 前端，多个地址用英文逗号分隔：
+
+```env
+CORS_ALLOW_ORIGIN=https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com,https://time-focus.vercel.app
+```
+
+然后将后端公开地址填写到前端部署环境的 `VITE_API_BASE_URL` 中，并重新构建部署。
 
 > 当前音乐登录会话存储在服务进程内存中。服务重启后登录状态会失效；如果用于多人或长期运行，建议改用 Redis 等持久化存储。
 
@@ -108,10 +114,10 @@ CORS_ALLOW_ORIGIN=https://time-focus.vercel.app
 5. 配置函数环境变量：
 
 ```env
-CORS_ALLOW_ORIGIN=https://你的-vercel-域名
+CORS_ALLOW_ORIGIN=https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com
 ```
 
-6. 发布 API 网关后，将网关的公网地址填入 Vercel 的 `VITE_API_BASE_URL`，再重新部署前端。
+6. 发布 API 网关后，将网关的公网地址填入前端部署环境的 `VITE_API_BASE_URL`，再重新部署前端。
 
 腾讯云控制台的函数运行环境、免费额度和 API 网关计费规则可能会调整，请以创建页面显示为准。云函数实例可能重启，网易云扫码登录会话因此可能失效；稳定保存会话需要额外接入 Redis 或云数据库。
 

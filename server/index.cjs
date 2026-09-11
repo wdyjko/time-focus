@@ -26,11 +26,16 @@ const readSessionToken = token => {
 app.use(express.json())
 app.use((req, res, next) => {
   const requestOrigin = req.headers.origin
-  const allowedOrigin = process.env.CORS_ALLOW_ORIGIN || 'http://localhost:5173'
-  if (!requestOrigin || requestOrigin === allowedOrigin) res.setHeader('Access-Control-Allow-Origin', requestOrigin || allowedOrigin)
+  const allowedOrigins = (process.env.CORS_ALLOW_ORIGIN || 'http://localhost:5173')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean)
+  const originAllowed = !requestOrigin || allowedOrigins.includes(requestOrigin)
+  if (originAllowed) res.setHeader('Access-Control-Allow-Origin', requestOrigin || allowedOrigins[0])
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-User-Id, X-Music-Session')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-  if (req.method === 'OPTIONS') return res.sendStatus(requestOrigin && requestOrigin !== allowedOrigin ? 403 : 204)
+  if (req.method === 'OPTIONS') return res.sendStatus(originAllowed ? 204 : 403)
   next()
 })
 const userCookie = req => readSessionToken(req.header('x-music-session')) || sessions.get(req.header('x-user-id')) || ''
