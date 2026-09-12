@@ -2,6 +2,10 @@
 
 一个简洁的在线番茄钟，集成任务管理、专注统计、浏览器通知和网易云音乐播放功能。
 
+## 在线体验
+
+[立即访问 Time Focus](https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com)
+
 ## 功能
 
 - 专注、短休息和长休息三种计时模式
@@ -21,105 +25,6 @@
 - Tailwind CSS
 - Express
 - NeteaseCloudMusicApi
-
-## 本地开发
-
-需要安装 Node.js 20.19 或更高版本（也支持 Node.js 22.12 及更高版本）。
-
-```bash
-git clone https://github.com/wdyjko/time-focus.git
-cd time-focus
-npm install
-npm run dev:full
-```
-
-启动后访问 [http://localhost:5173](http://localhost:5173)。前端开发服务器会把 `/api` 请求代理到运行在 `http://localhost:3000` 的音乐服务。
-
-也可以分别启动前后端：
-
-```bash
-npm run dev
-npm run server
-```
-
-## 构建
-
-```bash
-npm run build
-npm run preview
-```
-
-构建产物位于 `dist` 目录。
-
-## 环境变量
-
-复制 `.env.example` 为 `.env.local`，按需填写音乐服务地址：
-
-```env
-VITE_API_BASE_URL=https://your-music-api.example.com
-```
-
-音乐后端支持以下环境变量：
-
-| 变量 | 用途 | 默认值 |
-| --- | --- | --- |
-| `PORT` | 后端监听端口 | `3000` |
-| `CORS_ALLOW_ORIGIN` | 允许访问音乐 API 的前端来源，多个来源用英文逗号分隔 | `http://localhost:5173` |
-
-## 部署
-
-### 前端部署到 Vercel
-
-1. 在 Vercel 中导入本 GitHub 仓库。
-2. Framework Preset 选择 `Vite`。
-3. Build Command 使用 `npm run build`。
-4. Output Directory 使用 `dist`。
-5. 如果启用音乐功能，在 Vercel 添加 `VITE_API_BASE_URL` 环境变量并重新部署。
-
-仓库中的 `vercel.json` 已包含所需的构建配置。
-
-### 部署音乐后端
-
-音乐功能依赖 `server/index.cjs` 中的 Express 服务。可以部署到支持常驻 Node.js 进程的平台：
-
-```text
-Build Command: npm install
-Start Command: npm start
-```
-
-将后端环境变量 `CORS_ALLOW_ORIGIN` 设置为实际的前端站点地址。当前国内 CloudBase 前端地址为：
-
-```env
-CORS_ALLOW_ORIGIN=https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com
-```
-
-如果同时保留 Vercel 前端，多个地址用英文逗号分隔：
-
-```env
-CORS_ALLOW_ORIGIN=https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com,https://time-focus.vercel.app
-```
-
-然后将后端公开地址填写到前端部署环境的 `VITE_API_BASE_URL` 中，并重新构建部署。
-
-> 当前音乐登录会话存储在服务进程内存中。服务重启后登录状态会失效；如果用于多人或长期运行，建议改用 Redis 等持久化存储。
-
-### 使用腾讯云云函数（SCF）
-
-如果没有国际银行卡，可以使用腾讯云的国内账号和支付方式。当前后端已同时支持本地 Express 和腾讯云函数调用：
-
-1. 在腾讯云创建 Node.js 20 云函数，地域选择距离用户较近的区域。
-2. 将仓库中的 `server` 目录、`package.json` 和 `package-lock.json` 上传为函数代码，或使用控制台的代码包部署。
-3. 选择“Web 函数”，监听端口填写 `9000`。上传包需要将 `index.js` 和 `index.cjs` 放在 ZIP 根目录；Web 函数会由 `index.js` 启动 HTTP 服务。
-4. 创建 API 网关触发器，使用默认的 API Gateway 集成，转发所有路径和方法。
-5. 配置函数环境变量：
-
-```env
-CORS_ALLOW_ORIGIN=https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com
-```
-
-6. 发布 API 网关后，将网关的公网地址填入前端部署环境的 `VITE_API_BASE_URL`，再重新部署前端。
-
-腾讯云控制台的函数运行环境、免费额度和 API 网关计费规则可能会调整，请以创建页面显示为准。云函数实例可能重启，网易云扫码登录会话因此可能失效；稳定保存会话需要额外接入 Redis 或云数据库。
 
 ## 数据说明
 
