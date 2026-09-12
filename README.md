@@ -4,7 +4,7 @@
 
 ## 在线体验
 
-[立即访问 Time Focus](https://tomato-clock-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com)
+[立即访问 Time Focus](https://time-focus-tomato-clock-d0gvllv7dba37852c.webapps.tcloudbase.com/)
 
 ## 功能
 
